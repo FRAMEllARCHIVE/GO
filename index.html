@@ -43,8 +43,8 @@
     #board {
       background: var(--board-color);
       border: 2px solid #333;
-      position: relative;
       box-shadow: 2px 2px 10px rgba(0, 0, 0, 0.2);
+      position: relative;
     }
     
     .grid-line {
@@ -69,12 +69,6 @@
       border-radius: 50%;
       background: #000;
       transform: translate(-50%, -50%);
-    }
-    
-    .intersection {
-      position: absolute;
-      cursor: pointer;
-      z-index: 2;
     }
     
     .stone {
@@ -217,7 +211,7 @@
   </style>
 </head>
 <body>
-  <h1>GO</h1>
+  <h1>GO - tjdbeer@gmail.com</h1>
   
   <div id="game-container">
     <div class="controls">
@@ -257,7 +251,6 @@
 
   <script>
     const boardElement = document.getElementById('board');
-    const boardContainer = document.getElementById('board-container');
     const currentTurnDisplay = document.getElementById('currentTurn');
     const turnStoneElement = document.getElementById('turn-stone');
     const resetBtn = document.getElementById('reset-btn');
@@ -309,9 +302,10 @@
       boardElement.style.width = `${boardSize}px`;
       boardElement.style.height = `${boardSize}px`;
       
+      setupClickableBoard();
       drawGridLines();
       drawStarPoints();
-      createIntersections();
+      placeStones();
       
       if (koPoint) {
         drawKoMarker();
@@ -320,6 +314,55 @@
       if (lastMove) {
         drawLastMoveMarker();
       }
+    }
+    
+    function setupClickableBoard() {
+      boardElement.addEventListener('click', (event) => {
+        if (gameEnded) {
+          showMessage("Game has ended. Start a new game.");
+          return;
+        }
+        
+        const rect = boardElement.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
+        const gridX = Math.round(x / CELL_SIZE);
+        const gridY = Math.round(y / CELL_SIZE);
+        
+        if (gridX >= 0 && gridX < size && gridY >= 0 && gridY < size) {
+          handleMove(gridX, gridY);
+        }
+      });
+      
+      boardElement.addEventListener('mousemove', (event) => {
+        if (gameEnded) return;
+        
+        const hoverStones = document.querySelectorAll('.hover-stone');
+        hoverStones.forEach(stone => stone.remove());
+        
+        const rect = boardElement.getBoundingClientRect();
+        const x = event.clientX - rect.left;
+        const y = event.clientY - rect.top;
+        
+        const gridX = Math.round(x / CELL_SIZE);
+        const gridY = Math.round(y / CELL_SIZE);
+        
+        if (gridX >= 0 && gridX < size && gridY >= 0 && gridY < size && !boardState[gridY][gridX]) {
+          const hoverStone = document.createElement('div');
+          hoverStone.classList.add('stone', currentTurn === 'black' ? 'hover-black' : 'hover-white', 'hover-stone');
+          hoverStone.style.width = `${CELL_SIZE * STONE_SIZE_RATIO}px`;
+          hoverStone.style.height = `${CELL_SIZE * STONE_SIZE_RATIO}px`;
+          hoverStone.style.left = `${gridX * CELL_SIZE}px`;
+          hoverStone.style.top = `${gridY * CELL_SIZE}px`;
+          boardElement.appendChild(hoverStone);
+        }
+      });
+      
+      boardElement.addEventListener('mouseleave', () => {
+        const hoverStones = document.querySelectorAll('.hover-stone');
+        hoverStones.forEach(stone => stone.remove());
+      });
     }
     
     function drawGridLines() {
@@ -363,39 +406,9 @@
       return [];
     }
     
-    function createIntersections() {
+    function placeStones() {
       for (let y = 0; y < size; y++) {
         for (let x = 0; x < size; x++) {
-          const intersection = document.createElement('div');
-          intersection.classList.add('intersection');
-          intersection.style.width = `${CELL_SIZE}px`;
-          intersection.style.height = `${CELL_SIZE}px`;
-          intersection.style.left = `${x * CELL_SIZE - CELL_SIZE / 2}px`;
-          intersection.style.top = `${y * CELL_SIZE - CELL_SIZE / 2}px`;
-          
-          intersection.addEventListener('click', () => handleMove(x, y));
-          
-          intersection.addEventListener('mouseenter', () => {
-            if (!boardState[y][x] && !gameEnded) {
-              const hoverStone = document.createElement('div');
-              const stoneClass = currentTurn === 'black' ? 'hover-black' : 'hover-white';
-              hoverStone.classList.add('stone', stoneClass);
-              hoverStone.style.width = `${CELL_SIZE * STONE_SIZE_RATIO}px`;
-              hoverStone.style.height = `${CELL_SIZE * STONE_SIZE_RATIO}px`;
-              hoverStone.style.left = `${x * CELL_SIZE}px`;
-              hoverStone.style.top = `${y * CELL_SIZE}px`;
-              hoverStone.dataset.hover = 'true';
-              boardElement.appendChild(hoverStone);
-            }
-          });
-          
-          intersection.addEventListener('mouseleave', () => {
-            const hoverStones = boardElement.querySelectorAll('[data-hover="true"]');
-            hoverStones.forEach(stone => stone.remove());
-          });
-          
-          boardElement.appendChild(intersection);
-          
           if (boardState[y][x]) {
             placeStoneElement(x, y, boardState[y][x]);
           }
